@@ -1,0 +1,458 @@
+"""
+Flask Backend Server with Built-in Dashboard
+All-in-one solution - no separate HTML file needed!
+"""
+
+from flask import Flask, jsonify, request
+from flask_cors import CORS
+import json
+import threading
+import time
+from datetime import datetime
+import os
+
+# Import your bot modules
+try:
+    from betfair_client import BetfairClient
+    from calculator import BettingCalculator
+    from bet_manager import BetManager
+    BOT_AVAILABLE = True
+except ImportError:
+    BOT_AVAILABLE = False
+    print("Warning: Bot modules not found. Running in demo mode.")
+
+app = Flask(__name__)
+CORS(app)
+
+# Global bot state
+bot_state = {
+    'status': 'stopped',
+    'balance': 500.74,
+    'stats': {
+        'totalBets': 0,
+        'successfulBets': 0,
+        'totalStaked': 0,
+        'totalExposure': 0
+    },
+    'recent_bets': [],
+    'logs': [],
+    'current_races': [],
+    'config': {
+        'app_key': '',
+        'session_token': '',
+        'stake': 10,
+        'per_race_stop_loss': 50,
+        'min_runners': 8,
+        'max_runners': 14,
+        'check_interval_seconds': 30,
+        'bet_timing_minutes_before_start': 10
+    }
+}
+
+# Bot instance
+bot_thread = None
+bot_running = False
+client = None
+calculator = None
+bet_manager = None
+processed_races = set()
+
+
+def add_log(log_type, message):
+    """Add log entry"""
+    log_entry = {
+        'time': datetime.now().strftime('%H:%M:%S'),
+        'type': log_type,
+        'message': message
+    }
+    bot_state['logs'].insert(0, log_entry)
+    bot_state['logs'] = bot_state['logs'][:100]
+
+
+def load_config():
+    """Load configuration from file"""
+    try:
+        with open('config.json', 'r') as f:
+            config = json.load(f)
+            bot_state['config'].update(config)
+            add_log('info', 'Configuration loaded')
+            return True
+    except Exception as e:
+        add_log('error', f'Failed to load config: {str(e)}')
+        return False
+
+
+def save_config():
+    """Save configuration to file"""
+    try:
+        with open('config.json', 'w') as f:
+            json.dump(bot_state['config'], f, indent=4)
+        add_log('success', 'Configuration saved')
+        return True
+    except Exception as e:
+        add_log('error', f'Failed to save config: {str(e)}')
+        return False
+
+
+def bot_loop():
+    """Main bot loop"""
+    global bot_running, client, calculator, bet_manager
+    
+    if not BOT_AVAILABLE:
+        add_log('error', 'Bot modules not available')
+        bot_state['status'] = 'error'
+        bot_running = False
+        return
+    
+    add_log('info', 'Initializing bot...')
+    
+    try:
+        client = BetfairClient(
+            app_key=bot_state['config']['app_key'],
+            session_token=bot_state['config']['session_token']
+        )
+        
+        if not client.connect():
+            add_log('error', 'Failed to connect to Betfair')
+            bot_state['status'] = 'error'
+            bot_running = False
+            return
+        
+        add_log('success', 'Connected to Betfair')
+        
+        balance = client.get_account_balance()
+        if balance:
+            bot_state['balance'] = balance
+            add_log('info', f'Account balance: ${balance:.2f}')
+        
+        calculator = BettingCalculator()
+        bet_manager = BetManager(
+            stake=bot_state['config']['stake'],
+            per_race_stop_loss=bot_state['config']['per_race_stop_loss']
+        )
+        
+        add_log('success', 'Bot started successfully')
+        
+    except Exception as e:
+        add_log('error', f'Initialization error: {str(e)}')
+        bot_state['status'] = 'error'
+        bot_running = False
+        return
+    
+    while bot_running:
+        try:
+            add_log('info', 'Checking for races...')
+            races = client.get_australian_thoroughbred_races(hours_ahead=2)
+            
+            bot_state['current_races'] = [{
+                'id': race.market_id,
+                'name': race.event.name,
+                'runners': len(race.runners),
+                'start_time': race.market_start_time.strftime('%H:%M')
+            } for race in races]
+            
+            add_log('info', f'Found {len(races)} Australian races')
+            
+            summary = bet_manager.get_betting_summary()
+            bot_state['stats'] = {
+                'totalBets': summary['total_bets'],
+                'successfulBets': summary['total_bets'],
+                'totalStaked': summary['total_staked'],
+                'totalExposure': summary['total_exposure']
+            }
+            
+            time.sleep(bot_state['config']['check_interval_seconds'])
+            
+        except Exception as e:
+            add_log('error', f'Bot error: {str(e)}')
+            time.sleep(10)
+    
+    add_log('warning', 'Bot stopped')
+    bot_state['status'] = 'stopped'
+
+
+# Dashboard HTML (built-in)
+DASHBOARD_HTML = '''
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Betfair Bot Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 min-h-screen">
+    <div class="container mx-auto p-6">
+        <div class="mb-8 flex items-center justify-between">
+            <div>
+                <h1 class="text-4xl font-bold text-white mb-2">Betfair Place Bot</h1>
+                <p class="text-blue-300">Australian Thoroughbred Racing</p>
+            </div>
+            <div class="flex gap-4">
+                <button id="startBtn" onclick="startBot()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold transition">
+                    ▶ Start Bot
+                </button>
+                <button id="stopBtn" onclick="stopBot()" class="hidden bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-semibold transition">
+                    ■ Stop Bot
+                </button>
+                <button onclick="refreshData()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition">
+                    ↻ Refresh
+                </button>
+            </div>
+        </div>
+
+        <div id="statusBanner" class="mb-6 p-4 rounded-lg flex items-center gap-3 bg-slate-700/50 border border-slate-600">
+            <span id="statusIcon" class="text-slate-400">●</span>
+            <span class="text-white font-semibold">Status: <span id="statusText">Stopped</span></span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+            <div class="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-xl p-6">
+                <div class="text-slate-400 text-sm mb-2">Account Balance</div>
+                <div class="text-3xl font-bold text-white">$<span id="balance">500.74</span></div>
+            </div>
+            <div class="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-xl p-6">
+                <div class="text-slate-400 text-sm mb-2">Total Bets</div>
+                <div class="text-3xl font-bold text-white" id="totalBets">0</div>
+            </div>
+            <div class="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-xl p-6">
+                <div class="text-slate-400 text-sm mb-2">Total Staked</div>
+                <div class="text-3xl font-bold text-white">$<span id="totalStaked">0.00</span></div>
+            </div>
+            <div class="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-xl p-6">
+                <div class="text-slate-400 text-sm mb-2">Exposure</div>
+                <div class="text-3xl font-bold text-white">$<span id="totalExposure">0.00</span></div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 bg-slate-800/50 backdrop-blur border border-slate-700 rounded-xl p-6">
+                <h2 class="text-xl font-bold text-white mb-4">Recent Bets</h2>
+                <div id="recentBets" class="space-y-3 max-h-96 overflow-y-auto">
+                    <div class="text-center py-12 text-slate-400">No bets placed yet</div>
+                </div>
+            </div>
+
+            <div class="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-xl p-6">
+                <h2 class="text-xl font-bold text-white mb-4">Configuration</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-sm text-slate-400 mb-2 block">Stake per Bet ($)</label>
+                        <input type="number" id="stake" value="10" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white">
+                    </div>
+                    <div>
+                        <label class="text-sm text-slate-400 mb-2 block">Stop Loss per Race ($)</label>
+                        <input type="number" id="stopLoss" value="50" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white">
+                    </div>
+                    <button onclick="saveConfig()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-semibold transition">
+                        Save Configuration
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-6 bg-slate-800/50 backdrop-blur border border-slate-700 rounded-xl p-6">
+            <h2 class="text-xl font-bold text-white mb-4">Live Logs</h2>
+            <div id="logs" class="bg-black/50 rounded-lg p-4 font-mono text-sm h-64 overflow-y-auto">
+                <div class="text-slate-500">Waiting for bot to start...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let autoRefresh = null;
+
+        loadConfig();
+        refreshData();
+
+        function startBot() {
+            fetch('/api/start', { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    alert(data.message);
+                    if (data.success) {
+                        updateStatus('running');
+                        startAutoRefresh();
+                    }
+                });
+        }
+
+        function stopBot() {
+            fetch('/api/stop', { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    alert(data.message);
+                    if (data.success) {
+                        updateStatus('stopped');
+                        stopAutoRefresh();
+                    }
+                });
+        }
+
+        function updateStatus(status) {
+            document.getElementById('statusText').textContent = status.charAt(0).toUpperCase() + status.slice(1);
+            const startBtn = document.getElementById('startBtn');
+            const stopBtn = document.getElementById('stopBtn');
+
+            if (status === 'running') {
+                document.getElementById('statusIcon').className = 'text-green-400';
+                document.getElementById('statusBanner').className = 'mb-6 p-4 rounded-lg flex items-center gap-3 bg-green-500/20 border border-green-500/50';
+                startBtn.classList.add('hidden');
+                stopBtn.classList.remove('hidden');
+            } else {
+                document.getElementById('statusIcon').className = 'text-slate-400';
+                document.getElementById('statusBanner').className = 'mb-6 p-4 rounded-lg flex items-center gap-3 bg-slate-700/50 border border-slate-600';
+                startBtn.classList.remove('hidden');
+                stopBtn.classList.add('hidden');
+            }
+        }
+
+        function refreshData() {
+            fetch('/api/status')
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('balance').textContent = data.balance.toFixed(2);
+                    document.getElementById('totalBets').textContent = data.stats.totalBets;
+                    document.getElementById('totalStaked').textContent = data.stats.totalStaked.toFixed(2);
+                    document.getElementById('totalExposure').textContent = data.stats.totalExposure.toFixed(2);
+                    updateStatus(data.status);
+                    updateLogs(data.logs);
+                    updateBets(data.recent_bets);
+                });
+        }
+
+        function updateLogs(logs) {
+            const logsEl = document.getElementById('logs');
+            if (logs.length === 0) {
+                logsEl.innerHTML = '<div class="text-slate-500">Waiting for bot to start...</div>';
+                return;
+            }
+            logsEl.innerHTML = logs.map(log => {
+                const color = log.type === 'success' ? 'text-green-400' :
+                             log.type === 'error' ? 'text-red-400' :
+                             log.type === 'warning' ? 'text-yellow-400' : 'text-blue-400';
+                return `<div><span class="text-slate-500">[${log.time}]</span> <span class="${color}">${log.message}</span></div>`;
+            }).join('');
+        }
+
+        function updateBets(bets) {
+            const betsEl = document.getElementById('recentBets');
+            if (bets.length === 0) {
+                betsEl.innerHTML = '<div class="text-center py-12 text-slate-400">No bets placed yet</div>';
+                return;
+            }
+            betsEl.innerHTML = bets.map(bet => `
+                <div class="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
+                    <div class="font-semibold text-white">${bet.horse} @ ${bet.odds}</div>
+                    <div class="text-sm text-slate-400">${bet.race} • $${bet.stake}</div>
+                </div>
+            `).join('');
+        }
+
+        function loadConfig() {
+            fetch('/api/config')
+                .then(res => res.json())
+                .then(config => {
+                    document.getElementById('stake').value = config.stake;
+                    document.getElementById('stopLoss').value = config.per_race_stop_loss;
+                });
+        }
+
+        function saveConfig() {
+            const config = {
+                stake: parseInt(document.getElementById('stake').value),
+                per_race_stop_loss: parseInt(document.getElementById('stopLoss').value)
+            };
+            fetch('/api/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config)
+            })
+                .then(res => res.json())
+                .then(data => alert(data.message));
+        }
+
+        function startAutoRefresh() {
+            autoRefresh = setInterval(refreshData, 5000);
+        }
+
+        function stopAutoRefresh() {
+            if (autoRefresh) clearInterval(autoRefresh);
+        }
+    </script>
+</body>
+</html>
+'''
+
+# Routes
+@app.route('/')
+def serve_dashboard():
+    """Serve built-in dashboard"""
+    return DASHBOARD_HTML
+
+
+@app.route('/api/status')
+def get_status():
+    """Get current bot status"""
+    return jsonify(bot_state)
+
+
+@app.route('/api/start', methods=['POST'])
+def start_bot():
+    """Start the bot"""
+    global bot_thread, bot_running
+    
+    if bot_running:
+        return jsonify({'success': False, 'message': 'Bot already running'})
+    
+    load_config()
+    
+    bot_running = True
+    bot_state['status'] = 'running'
+    bot_thread = threading.Thread(target=bot_loop, daemon=True)
+    bot_thread.start()
+    
+    add_log('success', 'Bot started')
+    return jsonify({'success': True, 'message': 'Bot started successfully!'})
+
+
+@app.route('/api/stop', methods=['POST'])
+def stop_bot():
+    """Stop the bot"""
+    global bot_running
+    
+    if not bot_running:
+        return jsonify({'success': False, 'message': 'Bot not running'})
+    
+    bot_running = False
+    add_log('warning', 'Stopping bot...')
+    
+    return jsonify({'success': True, 'message': 'Bot stopped successfully!'})
+
+
+@app.route('/api/config', methods=['GET', 'POST'])
+def handle_config():
+    """Get or update configuration"""
+    if request.method == 'GET':
+        return jsonify(bot_state['config'])
+    
+    elif request.method == 'POST':
+        data = request.json
+        bot_state['config'].update(data)
+        save_config()
+        return jsonify({'success': True, 'message': 'Configuration saved successfully!'})
+
+
+if __name__ == '__main__':
+    load_config()
+    add_log('info', 'Server starting...')
+    
+    print("\n" + "="*60)
+    print("Betfair Bot Dashboard Server - All-in-One")
+    print("="*60)
+    print("✓ Dashboard built-in (no separate HTML file needed)")
+    print("✓ Dashboard URL: http://localhost:5000")
+    print("✓ API URL: http://localhost:5000/api/status")
+    print("="*60 + "\n")
+    
+    app.run(debug=True, host='0.0.0.0', port=5000, use_reloader=False)
