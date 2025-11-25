@@ -2,18 +2,23 @@
     "app_key": "sA8sm5SWIjdpkOCm",
     "session_token": "aKu/byQvPa...",
     "username": "pkelleher977",
-    "stake": 10,
-    "per_race_stop_loss": 50,
-    "country_code": "AU",
-    "market_type": "WIN",
-    "place_market_type": "PLACE",
-    "min_runners": 8,
-    "max_runners": 14,
-    "check_interval_seconds": 30,
-    "bet_timing_minutes_before_start": 10,
+    "account": {
+        "balance": 0,
+        "currency": "USD"
+    },
     "betting": {
+        "stake": 10,
+        "per_race_stop_loss": 50,
         "min_odds": 2,
         "max_odds": 10,
-        "stake": 2
+        "min_runners": 8,
+        "max_runners": 14,
+        "check_interval_seconds": 30,
+        "bet_timing_minutes_before_start": 10
+    },
+    "market_config": {
+        "country_code": "AU",
+        "market_type": "WIN",
+        "place_market_type": "PLACE"
     }
 }

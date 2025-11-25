@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Betfair Bot Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f8f9fb;
+            color: #1a1a1a;
+            min-height: 100vh;
+            padding: 24px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #778873 0%, #A1BC98 100%);
+            border-radius: 24px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 20px rgba(119, 136, 115, 0.15);
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 8px;
+            color: white;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+        
+        .header p {
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 1em;
+            font-weight: 400;
+        }
+        
+        .warning-banner {
+            background: white;
+            border: 2px solid #ffc107;
+            border-radius: 20px;
+            padding: 24px;
+            margin: 24px 0;
+            text-align: center;
+            box-shadow: 0 2px 12px rgba(255,193,7,0.1);
+        }
+        
+        .warning-banner h3 {
+            color: #856404;
+            margin-bottom: 6px;
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+        
+        .warning-banner p {
+            color: #664d03;
+            font-weight: 400;
+            font-size: 0.95em;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 14px 32px;
+            font-size: 15px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            font-family: inherit;
+        }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-start {
+            background: #A1BC98;
+            color: white;
+        }
+        
+        .btn-start:hover {
+            background: #8da884;
+        }
+        
+        .btn-stop {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .btn-stop:hover {
+            background: #c0392b;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 20px;
+            padding: 28px 24px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+            transition: all 0.2s ease;
+            border: 1px solid #f0f0f0;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            border-color: #e8e8e8;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #8b8b8b;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.8px;
+        }
+        
+        .stat-value {
+            font-size: 28px;
+            font-weight: 600;
+            color: #1a1a1a;
+            letter-spacing: -0.5px;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1.8fr 1fr;
+            gap: 20px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 24px;
+            padding: 32px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+            border: 1px solid #f0f0f0;
+        }
+        
+        .card h2 {
+            margin-bottom: 24px;
+            font-size: 1.4em;
+            color: #1a1a1a;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+        }
+        
+        .logs-container {
+            background: #f8f9fb;
+            border: 1px solid #e8e8e8;
+            border-radius: 16px;
+            padding: 20px;
+            height: 450px;
+            overflow-y: auto;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+        
+        .logs-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .logs-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .logs-container::-webkit-scrollbar-thumb {
+            background: #d0d0d0;
+            border-radius: 10px;
+        }
+        
+        .logs-container::-webkit-scrollbar-thumb:hover {
+            background: #b0b0b0;
+        }
+        
+        .log-entry {
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+            color: #4a4a4a;
+        }
+        
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+        
+        .config-form {
+            display: grid;
+            gap: 24px;
+        }
+        
+        .form-group {
+            display: grid;
+            gap: 10px;
+        }
+        
+        .form-group label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #4a4a4a;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .form-group input {
+            padding: 14px 16px;
+            border-radius: 12px;
+            border: 1px solid #e8e8e8;
+            background: #f8f9fb;
+            color: #1a1a1a;
+            font-size: 15px;
+            font-weight: 400;
+            transition: all 0.2s ease;
+            font-family: inherit;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .form-group input:hover {
+            border-color: #d0d0d0;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #A1BC98;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(161, 188, 152, 0.08);
+        }
+        
+        .form-group small {
+            font-size: 12px;
+            font-weight: 400;
+            color: #8b8b8b;
+            line-height: 1.5;
+        }
+        
+        .form-group input[type="password"] {
+            font-family: 'Courier New', monospace;
+            letter-spacing: 2px;
+        }
+        
+        .form-group input::placeholder {
+            color: #b0b0b0;
+            font-weight: 400;
+        }
+        
+        .input-with-toggle {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        
+        .input-with-toggle input {
+            padding-right: 50px;
+        }
+        
+        .toggle-visibility {
+            position: absolute;
+            right: 12px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #8b8b8b;
+            font-size: 16px;
+            padding: 6px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .toggle-visibility:hover {
+            background: #f0f0f0;
+            color: #4a4a4a;
+        }
+        
+        .btn-save {
+            background: #778873;
+            color: white;
+            padding: 14px;
+            margin-top: 8px;
+            font-weight: 500;
+        }
+        
+        .btn-save:hover {
+            background: #5f6e5c;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .success-text { color: #27ae60; }
+        .warning-text { color: #f39c12; }
+        .danger-text { color: #e74c3c; }
+        .info-text { color: #3498db; }
+        
+        @media (max-width: 968px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            body {
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1>🏇 Betfair Place Betting Bot</h1>
+            <p>Live Trading Dashboard</p>
+        </div>
+        
+        <div class="warning-banner">
+            <h3>⚠️ LIVE TRADING MODE</h3>
+            <p>This bot places REAL bets with REAL money!</p>
+        </div>
+        
+        <div class="controls">
+            <button class="btn btn-start" onclick="startBot()">▶️ Start Bot</button>
+            <button class="btn btn-stop" onclick="stopBot()">⏹️ Stop Bot</button>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Status</div>
+                <div class="stat-value" id="botStatus">🔴 Stopped</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Connection</div>
+                <div class="stat-value" id="connectionStatus">⭕ Not Connected</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Balance</div>
+                <div class="stat-value" id="balance">$0.00</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Bets</div>
+                <div class="stat-value" id="totalBets">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Successful</div>
+                <div class="stat-value" id="successfulBets">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Failed</div>
+                <div class="stat-value" id="failedBets">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Stake</div>
+                <div class="stat-value" id="totalStake">$0.00</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Last Bet</div>
+                <div class="stat-value" id="lastBet">Never</div>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="card">
+                <h2>📝 Live Logs</h2>
+                <div class="logs-container" id="logs">
+                    <div class="log-entry">Waiting for bot to start...</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>⚙️ Configuration</h2>
+                <div class="config-form">
+                    <div class="form-group">
+                        <label>Session Token</label>
+                        <div class="input-with-toggle">
+                            <input type="password" id="sessionToken" placeholder="Enter Betfair session token">
+                            <button type="button" class="toggle-visibility" onclick="togglePasswordVisibility('sessionToken')">
+                                👁️
+                            </button>
+                        </div>
+                        <small>Your Betfair API session token (keep secure)</small>
+                    </div>
+                    <div class="form-group">
+                        <label>App Key</label>
+                        <div class="input-with-toggle">
+                            <input type="password" id="appKey" placeholder="Enter Betfair app key">
+                            <button type="button" class="toggle-visibility" onclick="togglePasswordVisibility('appKey')">
+                                👁️
+                            </button>
+                        </div>
+                        <small>Your Betfair application key</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Min Odds</label>
+                        <input type="number" id="minOdds" step="0.1" value="2.0" placeholder="2.0">
+                        <small>Minimum odds to consider for betting</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Max Odds</label>
+                        <input type="number" id="maxOdds" step="0.1" value="10.0" placeholder="10.0">
+                        <small>Maximum odds to consider for betting</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Stake ($)</label>
+                        <input type="number" id="stake" step="0.5" value="2.0" placeholder="2.0">
+                        <small>Amount to stake per bet</small>
+                    </div>
+                    <button class="btn btn-save" onclick="saveConfig()">💾 Save Configuration</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function startBot() {
+            if (!confirm('⚠️ START LIVE BETTING?\n\nThis will place REAL bets with REAL money!\n\nAre you sure?')) {
+                return;
+            }
+            
+            fetch('/api/start', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    updateStatus();
+                })
+                .catch(error => alert('Error starting bot: ' + error));
+        }
+        
+        function stopBot() {
+            fetch('/api/stop', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    updateStatus();
+                })
+                .catch(error => alert('Error stopping bot: ' + error));
+        }
+        
+        function togglePasswordVisibility(inputId) {
+            const input = document.getElementById(inputId);
+            const button = input.parentNode.querySelector('.toggle-visibility');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                button.textContent = '🙈';
+                button.title = 'Hide';
+            } else {
+                input.type = 'password';
+                button.textContent = '👁️';
+                button.title = 'Show';
+            }
+        }
+        
+        function saveConfig() {
+            const config = {
+                session_token: document.getElementById('sessionToken').value,
+                app_key: document.getElementById('appKey').value,
+                min_odds: parseFloat(document.getElementById('minOdds').value),
+                max_odds: parseFloat(document.getElementById('maxOdds').value),
+                stake: parseFloat(document.getElementById('stake').value)
+            };
+            
+            if (!config.session_token) {
+                alert('⚠️ Please enter a session token!');
+                return;
+            }
+            
+            if (!config.app_key) {
+                alert('⚠️ Please enter an app key!');
+                return;
+            }
+            
+            fetch('/api/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('✅ ' + data.message);
+                    } else {
+                        alert('❌ ' + data.message);
+                    }
+                })
+                .catch(error => alert('Error saving config: ' + error));
+        }
+        
+        function updateStatus() {
+            fetch('/api/status')
+                .then(response => response.json())
+                .then(data => {
+                    // Status
+                    const statusEl = document.getElementById('botStatus');
+                    if (data.status === 'running') {
+                        statusEl.innerHTML = '<span class="status-indicator" style="background: #27ae60;"></span><span class="success-text">Running</span>';
+                    } else {
+                        statusEl.innerHTML = '<span class="status-indicator" style="background: #e74c3c;"></span><span class="danger-text">Stopped</span>';
+                    }
+                    
+                    // Connection
+                    const connEl = document.getElementById('connectionStatus');
+                    const recentLogs = data.logs.join(' ');
+                    if (!data.betfair_available) {
+                        connEl.innerHTML = '<span class="status-indicator" style="background: #f39c12;"></span><span class="warning-text">Demo Mode</span>';
+                    } else if (recentLogs.includes('Connected to Betfair')) {
+                        connEl.innerHTML = '<span class="status-indicator" style="background: #27ae60;"></span><span class="success-text">Connected</span>';
+                    } else if (recentLogs.includes('Failed to connect')) {
+                        connEl.innerHTML = '<span class="status-indicator" style="background: #e74c3c;"></span><span class="danger-text">Failed</span>';
+                    } else {
+                        connEl.innerHTML = '<span class="status-indicator" style="background: #95a5a6;"></span><span style="color: #95a5a6;">Not Connected</span>';
+                    }
+                    
+                    // Balance
+                    document.getElementById('balance').textContent = 
+                        `${data.currency || '$'} ${data.balance.toFixed(2)}`;
+                    
+                    // Stats
+                    document.getElementById('totalBets').textContent = data.stats.total_bets || 0;
+                    document.getElementById('successfulBets').textContent = data.stats.successful_bets || 0;
+                    document.getElementById('failedBets').textContent = data.stats.failed_bets || 0;
+                    document.getElementById('totalStake').textContent = 
+                        `${data.currency || '$'} ${(data.stats.total_stake || 0).toFixed(2)}`;
+                    document.getElementById('lastBet').textContent = 
+                        data.stats.last_bet_time || 'Never';
+                    
+                    // Config - Load session token and app key too
+                    if (data.config && data.config.session_token) {
+                        document.getElementById('sessionToken').value = data.config.session_token;
+                    }
+                    if (data.config && data.config.app_key) {
+                        document.getElementById('appKey').value = data.config.app_key;
+                    }
+                    if (data.config && data.config.min_odds) {
+                        document.getElementById('minOdds').value = data.config.min_odds;
+                    }
+                    if (data.config && data.config.max_odds) {
+                        document.getElementById('maxOdds').value = data.config.max_odds;
+                    }
+                    if (data.config && data.config.stake) {
+                        document.getElementById('stake').value = data.config.stake;
+                    }
+                    
+                    // Logs
+                    const logsEl = document.getElementById('logs');
+                    if (data.logs && data.logs.length > 0) {
+                        logsEl.innerHTML = data.logs.map(log => 
+                            `<div class="log-entry">${log}</div>`
+                        ).join('');
+                        logsEl.scrollTop = logsEl.scrollHeight;
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+        
+        // Update every 3 seconds
+        setInterval(updateStatus, 3000);
+        updateStatus();
+    </script>
+</body>
+</html>
