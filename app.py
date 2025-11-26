@@ -1,5 +1,6 @@
 """
 Complete Betfair Bot Dashboard with Live Betting Integration
+Fixed version with proper balance tracking and state management
 """
 
 from flask import Flask, render_template, jsonify, request
@@ -10,6 +11,7 @@ import time
 from datetime import datetime
 from collections import deque
 import logging
+import os
 
 # Import your bot components
 try:
@@ -34,24 +36,67 @@ bot_stats = {
     "total_exposure": 0,
     "successful_bets": 0,
     "failed_bets": 0,
-    "last_bet_time": None
+    "last_bet_time": None,
+    "balance": 0.0  # Initialize balance
 }
 bot_instance = None
-processed_races = set()
+bot_lock = threading.Lock()
 
 # Setup logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 def add_log(message):
     """Add timestamped log entry"""
     timestamp = datetime.now().strftime("%H:%M:%S")
-    bot_logs.append(f"[{timestamp}] {message}")
+    log_entry = f"[{timestamp}] {message}"
+    bot_logs.append(log_entry)
     logger.info(message)
 
 def get_recent_logs(count=50):
     """Get recent log entries"""
     return list(bot_logs)[-count:]
+
+def load_config():
+    """Load configuration from file"""
+    try:
+        if os.path.exists('config.json'):
+            with open('config.json', 'r') as f:
+                return json.load(f)
+    except Exception as e:
+        logger.error(f"Error loading config: {e}")
+    
+    # Default config
+    return {
+        "account": {
+            "balance": 0,
+            "currency": "AUD"
+        },
+        "betting": {
+            "min_odds": 2.0,
+            "max_odds": 10.0,
+            "stake": 2.0,
+            "min_runners": 8,
+            "max_runners": 14,
+            "per_race_stop_loss": 20.0,
+            "check_interval_seconds": 60
+        },
+        "session_token": "",
+        "app_key": ""
+    }
+
+def save_config(config):
+    """Save configuration to file"""
+    try:
+        with open('config.json', 'w') as f:
+            json.dump(config, f, indent=4)
+        return True
+    except Exception as e:
+        logger.error(f"Error saving config: {e}")
+        return False
 
 class BotRunner:
     """Wrapper for bot execution"""
@@ -66,12 +111,20 @@ class BotRunner:
         
     def initialize(self):
         """Initialize bot connection"""
+        global bot_stats
+        
         if not BETFAIR_AVAILABLE:
             add_log("⚠️ Betfair modules not available - Demo mode")
             return False
             
         try:
             add_log("🔌 Connecting to Betfair...")
+            
+            # Validate credentials
+            if not self.config.get('session_token') or not self.config.get('app_key'):
+                add_log("❌ Missing session token or app key")
+                return False
+            
             self.client = BetfairClient(
                 app_key=self.config['app_key'],
                 session_token=self.config['session_token']
@@ -79,7 +132,7 @@ class BotRunner:
             
             if not self.client.connect():
                 add_log("❌ Failed to connect to Betfair")
-                add_log("💡 Check: Session token, App key, Internet")
+                add_log("💡 Check: Session token, App key, Internet connection")
                 return False
             
             add_log("✅ Connected to Betfair successfully")
@@ -90,21 +143,38 @@ class BotRunner:
                 per_race_stop_loss=self.config['betting'].get('per_race_stop_loss', 20.0)
             )
             
-            # Check balance
+            # Check and update balance
             balance = self.client.get_account_balance()
-            if balance:
+            if balance is not None:
+                with bot_lock:
+                    bot_stats['balance'] = float(balance)
                 add_log(f"💰 Account balance: ${balance:.2f}")
-                global bot_stats
-                bot_stats['balance'] = balance
+            else:
+                add_log("⚠️ Could not retrieve account balance")
             
             return True
             
         except Exception as e:
             add_log(f"❌ Initialization error: {str(e)}")
+            logger.exception("Initialization error details:")
             return False
+    
+    def update_balance(self):
+        """Update account balance"""
+        global bot_stats
+        try:
+            if self.client:
+                balance = self.client.get_account_balance()
+                if balance is not None:
+                    with bot_lock:
+                        bot_stats['balance'] = float(balance)
+        except Exception as e:
+            logger.error(f"Error updating balance: {e}")
     
     def process_race(self, market_catalogue):
         """Process a single race"""
+        global bot_stats
+        
         try:
             market_id = market_catalogue.market_id
             event_name = market_catalogue.event.name
@@ -176,7 +246,8 @@ class BotRunner:
                 )
                 
                 if should_bet:
-                    add_log(f"💡 BET SIGNAL: {runner_name} @ {place_back_price} (Edge: {details['edge']})")
+                    edge = details.get('edge', 0)
+                    add_log(f"💡 BET SIGNAL: {runner_name} @ {place_back_price} (Edge: {edge:.2%})")
                     
                     # Check stop loss
                     if not self.bet_manager.can_bet_on_race(market_id):
@@ -185,7 +256,7 @@ class BotRunner:
                     
                     # Place bet
                     stake = self.config['betting']['stake']
-                    add_log(f"🎯 Placing bet: ${stake} on {runner_name} @ {place_back_price}")
+                    add_log(f"🎯 Placing bet: ${stake:.2f} on {runner_name} @ {place_back_price}")
                     
                     bet_result = self.client.place_bet(
                         market_id=place_market_id,
@@ -205,18 +276,26 @@ class BotRunner:
                     )
                     
                     # Update stats
-                    global bot_stats
-                    if bet_result['success']:
-                        add_log(f"✅ BET PLACED: {runner_name} - ID: {bet_result.get('bet_id')}")
-                        bot_stats['successful_bets'] += 1
-                        bets_placed += 1
-                    else:
-                        add_log(f"❌ BET FAILED: {bet_result.get('error')}")
-                        bot_stats['failed_bets'] += 1
+                    with bot_lock:
+                        if bet_result.get('success'):
+                            bet_id = bet_result.get('bet_id', 'N/A')
+                            add_log(f"✅ BET PLACED: {runner_name} - ID: {bet_id}")
+                            bot_stats['successful_bets'] += 1
+                            bets_placed += 1
+                        else:
+                            error = bet_result.get('error', 'Unknown error')
+                            add_log(f"❌ BET FAILED: {error}")
+                            bot_stats['failed_bets'] += 1
+                        
+                        bot_stats['total_bets'] += 1
+                        bot_stats['total_stake'] += stake
+                        bot_stats['last_bet_time'] = datetime.now().strftime("%H:%M:%S")
                     
-                    bot_stats['total_bets'] += 1
-                    bot_stats['total_stake'] += stake
-                    bot_stats['last_bet_time'] = datetime.now().strftime("%H:%M:%S")
+                    # Update balance after bet
+                    self.update_balance()
+                    
+                    # Small delay between bets
+                    time.sleep(1)
             
             if bets_placed == 0:
                 add_log(f"ℹ️ No opportunities in {event_name}")
@@ -227,6 +306,7 @@ class BotRunner:
             
         except Exception as e:
             add_log(f"❌ Error processing race: {str(e)}")
+            logger.exception("Race processing error details:")
     
     def run(self):
         """Main bot loop"""
@@ -234,6 +314,7 @@ class BotRunner:
         add_log("🤖 Bot started")
         
         check_interval = self.config['betting'].get('check_interval_seconds', 60)
+        balance_update_counter = 0
         
         while self.running:
             try:
@@ -251,6 +332,12 @@ class BotRunner:
                 else:
                     add_log("ℹ️ No upcoming races found")
                 
+                # Update balance periodically (every 5 cycles)
+                balance_update_counter += 1
+                if balance_update_counter >= 5:
+                    self.update_balance()
+                    balance_update_counter = 0
+                
                 # Wait
                 if self.running:
                     add_log(f"⏳ Waiting {check_interval} seconds...")
@@ -258,6 +345,7 @@ class BotRunner:
                 
             except Exception as e:
                 add_log(f"❌ Bot error: {str(e)}")
+                logger.exception("Bot loop error details:")
                 time.sleep(30)
         
         add_log("🛑 Bot stopped")
@@ -269,7 +357,7 @@ def run_bot_thread(config):
     if not BETFAIR_AVAILABLE:
         add_log("⚠️ Running in DEMO MODE - No Betfair connection")
         while bot_running:
-            add_log("Demo mode: Waiting for Betfair modules...")
+            add_log("💤 Demo mode: Waiting for Betfair modules...")
             time.sleep(10)
         return
     
@@ -283,6 +371,7 @@ def run_bot_thread(config):
             bot_running = False
     except Exception as e:
         add_log(f"❌ Bot thread error: {str(e)}")
+        logger.exception("Bot thread error details:")
         bot_running = False
 
 # Flask Routes
@@ -294,31 +383,38 @@ def index():
 @app.route('/api/status')
 def get_status():
     """Get current bot status"""
-    try:
-        with open('config.json', 'r') as f:
-            config = json.load(f)
-    except:
-        config = {
-            "account": {"balance": 0, "currency": "USD"},
-            "betting": {"min_odds": 2.0, "max_odds": 10.0, "stake": 2.0},
-            "session_token": "",
-            "app_key": ""
-        }
+    config = load_config()
     
-    # Don't send full session token to frontend for security
-    display_config = config.copy()
-    if 'session_token' in display_config and display_config['session_token']:
-        display_config['session_token'] = display_config['session_token'][:10] + '...'
+    # Sanitize session token for display
+    display_token = ""
+    if config.get('session_token'):
+        token = config['session_token']
+        if len(token) > 10:
+            display_token = token[:10] + "..." + token[-4:]
+        else:
+            display_token = token[:4] + "..."
+    
+    # Sanitize app key
+    display_app_key = ""
+    if config.get('app_key'):
+        key = config['app_key']
+        if len(key) > 10:
+            display_app_key = key[:10] + "..." + key[-4:]
+        else:
+            display_app_key = key[:4] + "..."
+    
+    with bot_lock:
+        stats_copy = bot_stats.copy()
     
     return jsonify({
         "status": "running" if bot_running else "stopped",
-        "balance": config.get('account', {}).get('balance', 0),
-        "currency": config.get('account', {}).get('currency', 'USD'),
-        "stats": bot_stats,
+        "balance": stats_copy.get('balance', 0.0),
+        "currency": config.get('account', {}).get('currency', 'AUD'),
+        "stats": stats_copy,
         "config": {
             **config.get('betting', {}),
-            "session_token": display_config.get('session_token', ''),
-            "app_key": config.get('app_key', '')
+            "session_token": display_token,
+            "app_key": display_app_key
         },
         "logs": get_recent_logs(),
         "betfair_available": BETFAIR_AVAILABLE
@@ -334,8 +430,14 @@ def start_bot():
     
     try:
         # Load config
-        with open('config.json', 'r') as f:
-            config = json.load(f)
+        config = load_config()
+        
+        # Validate credentials
+        if not config.get('session_token'):
+            return jsonify({"success": False, "message": "Session token is required"})
+        
+        if not config.get('app_key'):
+            return jsonify({"success": False, "message": "App key is required"})
         
         add_log("🚀 Starting bot...")
         
@@ -347,6 +449,7 @@ def start_bot():
     except Exception as e:
         bot_running = False
         add_log(f"❌ Failed to start: {str(e)}")
+        logger.exception("Start bot error details:")
         return jsonify({"success": False, "message": f"Failed to start bot: {str(e)}"})
 
 @app.route('/api/stop', methods=['POST'])
@@ -371,52 +474,118 @@ def update_config():
     try:
         new_config = request.json
         
-        # Load existing config or create new one
-        try:
-            with open('config.json', 'r') as f:
-                config = json.load(f)
-        except:
-            config = {
-                "account": {"balance": 0, "currency": "USD"},
-                "betting": {}
-            }
+        # Validate input
+        if not new_config:
+            return jsonify({"success": False, "message": "No configuration provided"})
         
-        # Update session token and app key at root level
+        # Load existing config
+        config = load_config()
+        
+        # Update session token
         if 'session_token' in new_config:
-            config['session_token'] = new_config['session_token']
-            add_log("🔑 Session token updated")
+            token = new_config['session_token'].strip()
+            if token:
+                config['session_token'] = token
+                add_log("🔑 Session token updated")
         
+        # Update app key
         if 'app_key' in new_config:
-            config['app_key'] = new_config['app_key']
-            add_log("🔐 App key updated")
+            key = new_config['app_key'].strip()
+            if key:
+                config['app_key'] = key
+                add_log("🔐 App key updated")
         
         # Update betting config
         if 'betting' not in config:
             config['betting'] = {}
         
         if 'min_odds' in new_config:
-            config['betting']['min_odds'] = new_config['min_odds']
+            config['betting']['min_odds'] = float(new_config['min_odds'])
+            add_log(f"📊 Min odds set to {new_config['min_odds']}")
+        
         if 'max_odds' in new_config:
-            config['betting']['max_odds'] = new_config['max_odds']
+            config['betting']['max_odds'] = float(new_config['max_odds'])
+            add_log(f"📊 Max odds set to {new_config['max_odds']}")
+        
         if 'stake' in new_config:
-            config['betting']['stake'] = new_config['stake']
+            config['betting']['stake'] = float(new_config['stake'])
+            add_log(f"💵 Stake set to ${new_config['stake']}")
         
         # Save config
-        with open('config.json', 'w') as f:
-            json.dump(config, f, indent=4)
-        
-        add_log("⚙️ Configuration saved successfully")
-        return jsonify({"success": True, "message": "Configuration saved! Restart bot to apply changes."})
+        if save_config(config):
+            add_log("⚙️ Configuration saved successfully")
+            
+            # Warn if bot is running
+            if bot_running:
+                return jsonify({
+                    "success": True, 
+                    "message": "Configuration saved! Restart bot to apply changes."
+                })
+            else:
+                return jsonify({
+                    "success": True, 
+                    "message": "Configuration saved successfully!"
+                })
+        else:
+            return jsonify({
+                "success": False, 
+                "message": "Failed to save configuration"
+            })
+            
+    except ValueError as e:
+        error_msg = f"Invalid value: {str(e)}"
+        add_log(f"❌ {error_msg}")
+        return jsonify({"success": False, "message": error_msg})
     except Exception as e:
-        add_log(f"❌ Config save error: {str(e)}")
+        error_msg = f"Config error: {str(e)}"
+        add_log(f"❌ {error_msg}")
+        logger.exception("Config update error details:")
+        return jsonify({"success": False, "message": error_msg})
+
+@app.route('/api/stats/reset', methods=['POST'])
+def reset_stats():
+    """Reset bot statistics"""
+    global bot_stats
+    
+    try:
+        with bot_lock:
+            balance = bot_stats.get('balance', 0.0)  # Preserve balance
+            bot_stats = {
+                "total_bets": 0,
+                "total_stake": 0,
+                "total_exposure": 0,
+                "successful_bets": 0,
+                "failed_bets": 0,
+                "last_bet_time": None,
+                "balance": balance
+            }
+        
+        add_log("🔄 Statistics reset")
+        return jsonify({"success": True, "message": "Statistics reset successfully"})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)})
+
+@app.route('/api/logs/clear', methods=['POST'])
+def clear_logs():
+    """Clear all log entries"""
+    global bot_logs
+    
+    try:
+        bot_logs.clear()
+        add_log("🗑️ Logs cleared by user")
+        return jsonify({"success": True, "message": "Logs cleared successfully"})
+    except Exception as e:
         return jsonify({"success": False, "message": str(e)})
 
 if __name__ == '__main__':
-    print("\n" + "="*60)
-    print("🏇 BETFAIR BOT DASHBOARD")
-    print("="*60)
+    print("\n" + "="*70)
+    print("🏇 BETFAIR BOT DASHBOARD - LIVE TRADING SYSTEM")
+    print("="*70)
     print("Dashboard URL: http://localhost:5000")
-    print("="*60)
+    print("="*70)
+    print("\n⚠️  WARNING: This bot places REAL bets with REAL money!")
+    print("📋 Make sure your config.json has valid credentials")
+    print("="*70)
     print("\n✅ Server starting...\n")
     
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5000, use_reloader=False)

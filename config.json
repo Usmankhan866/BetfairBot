@@ -1,16 +1,16 @@
 {
     "app_key": "sA8sm5SWIjdpkOCm",
-    "session_token": "aKu/byQvPa...",
+    "session_token": "3QVlRNeLk2FjLuI6oP4RP9mdSU1gvkX7ob303jlfITo=",
     "username": "pkelleher977",
     "account": {
         "balance": 0,
-        "currency": "USD"
+        "currency": "AUD"
     },
     "betting": {
-        "stake": 10,
+        "stake": 10.0,
         "per_race_stop_loss": 50,
-        "min_odds": 2,
-        "max_odds": 10,
+        "min_odds": 2.0,
+        "max_odds": 10.0,
         "min_runners": 8,
         "max_runners": 14,
         "check_interval_seconds": 30,

@@ -13,217 +13,187 @@
         
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #f8f9fb;
+            background: #f5f7fa;
             color: #1a1a1a;
             min-height: 100vh;
-            padding: 24px;
         }
         
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
+        .top-bar {
+            background: linear-gradient(135deg, #667761 0%, #8da884 100%);
+            padding: 20px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
         
-        .header {
-            background: linear-gradient(135deg, #778873 0%, #A1BC98 100%);
-            border-radius: 24px;
-            padding: 40px;
-            text-align: center;
-            margin-bottom: 30px;
-            box-shadow: 0 4px 20px rgba(119, 136, 115, 0.15);
-        }
-        
-        .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 8px;
+        .top-bar-left h1 {
+            font-size: 1.5em;
             color: white;
             font-weight: 600;
-            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
         
-        .header p {
-            color: rgba(255, 255, 255, 0.85);
-            font-size: 1em;
-            font-weight: 400;
+        .top-bar-left p {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.85em;
+            margin-top: 2px;
         }
         
-        .warning-banner {
-            background: white;
-            border: 2px solid #ffc107;
-            border-radius: 20px;
-            padding: 24px;
-            margin: 24px 0;
-            text-align: center;
-            box-shadow: 0 2px 12px rgba(255,193,7,0.1);
-        }
-        
-        .warning-banner h3 {
-            color: #856404;
-            margin-bottom: 6px;
-            font-size: 1.2em;
-            font-weight: 600;
-        }
-        
-        .warning-banner p {
-            color: #664d03;
-            font-weight: 400;
-            font-size: 0.95em;
-        }
-        
-        .controls {
+        .top-bar-right {
             display: flex;
             gap: 12px;
-            justify-content: center;
-            margin-bottom: 32px;
-            flex-wrap: wrap;
+        }
+        
+        .hamburger {
+            display: none;
+            flex-direction: column;
+            justify-content: space-around;
+            width: 30px;
+            height: 30px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            z-index: 101;
+        }
+        
+        .hamburger span {
+            width: 30px;
+            height: 3px;
+            background: white;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .hamburger.active span:nth-child(1) {
+            transform: rotate(45deg) translate(8px, 8px);
+        }
+        
+        .hamburger.active span:nth-child(2) {
+            opacity: 0;
+        }
+        
+        .hamburger.active span:nth-child(3) {
+            transform: rotate(-45deg) translate(7px, -7px);
+        }
+        
+        .layout {
+            display: flex;
+            min-height: calc(100vh - 80px);
+        }
+        
+        .sidebar {
+            width: 340px;
+            background: white;
+            border-right: 1px solid #e8e8e8;
+            padding: 32px 28px;
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+        }
+        
+        .sidebar.mobile-hidden {
+            transform: translateX(-100%);
+        }
+        
+        .mobile-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 99;
+        }
+        
+        .mobile-overlay.active {
+            display: block;
+        }
+        
+        .main-area {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
         }
         
         .btn {
-            padding: 14px 32px;
-            font-size: 15px;
+            padding: 12px 24px;
+            font-size: 14px;
             border: none;
-            border-radius: 12px;
+            border-radius: 10px;
             cursor: pointer;
             font-weight: 500;
             transition: all 0.2s ease;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
             font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
         
         .btn:hover {
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
         
         .btn:active {
             transform: translateY(0);
         }
         
-        .btn-start {
-            background: #A1BC98;
-            color: white;
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
         }
         
-        .btn-start:hover {
-            background: #8da884;
+        .btn-start {
+            background: #27ae60;
+            color: white;
+            box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3);
+        }
+        
+        .btn-start:hover:not(:disabled) {
+            background: #229954;
+            box-shadow: 0 4px 16px rgba(39, 174, 96, 0.4);
         }
         
         .btn-stop {
             background: #e74c3c;
             color: white;
+            box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
         }
         
-        .btn-stop:hover {
+        .btn-stop:hover:not(:disabled) {
             background: #c0392b;
+            box-shadow: 0 4px 16px rgba(231, 76, 60, 0.4);
         }
         
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 16px;
-            margin-bottom: 28px;
-        }
-        
-        .stat-card {
-            background: white;
-            border-radius: 20px;
-            padding: 28px 24px;
-            text-align: center;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-            transition: all 0.2s ease;
-            border: 1px solid #f0f0f0;
-        }
-        
-        .stat-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            border-color: #e8e8e8;
-        }
-        
-        .stat-label {
-            font-size: 12px;
+        .section-title {
+            font-size: 0.75em;
+            font-weight: 700;
             color: #8b8b8b;
-            margin-bottom: 12px;
             text-transform: uppercase;
-            font-weight: 600;
-            letter-spacing: 0.8px;
-        }
-        
-        .stat-value {
-            font-size: 28px;
-            font-weight: 600;
-            color: #1a1a1a;
-            letter-spacing: -0.5px;
-        }
-        
-        .main-content {
-            display: grid;
-            grid-template-columns: 1.8fr 1fr;
-            gap: 20px;
-        }
-        
-        .card {
-            background: white;
-            border-radius: 24px;
-            padding: 32px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-            border: 1px solid #f0f0f0;
-        }
-        
-        .card h2 {
-            margin-bottom: 24px;
-            font-size: 1.4em;
-            color: #1a1a1a;
-            font-weight: 600;
-            letter-spacing: -0.3px;
-        }
-        
-        .logs-container {
-            background: #f8f9fb;
-            border: 1px solid #e8e8e8;
-            border-radius: 16px;
-            padding: 20px;
-            height: 450px;
-            overflow-y: auto;
-            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
-            font-size: 13px;
-            line-height: 1.8;
-        }
-        
-        .logs-container::-webkit-scrollbar {
-            width: 6px;
-        }
-        
-        .logs-container::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        
-        .logs-container::-webkit-scrollbar-thumb {
-            background: #d0d0d0;
-            border-radius: 10px;
-        }
-        
-        .logs-container::-webkit-scrollbar-thumb:hover {
-            background: #b0b0b0;
-        }
-        
-        .log-entry {
-            padding: 10px 0;
-            border-bottom: 1px solid #f0f0f0;
-            color: #4a4a4a;
-        }
-        
-        .log-entry:last-child {
-            border-bottom: none;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         
         .config-form {
-            display: grid;
+            display: flex;
+            flex-direction: column;
             gap: 24px;
         }
         
         .form-group {
-            display: grid;
+            display: flex;
+            flex-direction: column;
             gap: 10px;
         }
         
@@ -231,56 +201,43 @@
             font-size: 13px;
             font-weight: 600;
             color: #4a4a4a;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
         
         .form-group input {
             padding: 14px 16px;
-            border-radius: 12px;
-            border: 1px solid #e8e8e8;
-            background: #f8f9fb;
+            border-radius: 10px;
+            border: 2px solid #e8e8e8;
+            background: #fafbfc;
             color: #1a1a1a;
-            font-size: 15px;
-            font-weight: 400;
+            font-size: 14px;
             transition: all 0.2s ease;
             font-family: inherit;
-            width: 100%;
-            box-sizing: border-box;
         }
         
         .form-group input:hover {
             border-color: #d0d0d0;
+            background: white;
         }
         
         .form-group input:focus {
             outline: none;
-            border-color: #A1BC98;
+            border-color: #8da884;
             background: white;
-            box-shadow: 0 0 0 3px rgba(161, 188, 152, 0.08);
+            box-shadow: 0 0 0 3px rgba(141, 168, 132, 0.1);
         }
         
         .form-group small {
-            font-size: 12px;
-            font-weight: 400;
+            font-size: 11px;
             color: #8b8b8b;
-            line-height: 1.5;
-        }
-        
-        .form-group input[type="password"] {
-            font-family: 'Courier New', monospace;
-            letter-spacing: 2px;
-        }
-        
-        .form-group input::placeholder {
-            color: #b0b0b0;
-            font-weight: 400;
+            line-height: 1.4;
+            margin-top: -4px;
         }
         
         .input-with-toggle {
             position: relative;
-            display: flex;
-            align-items: center;
         }
         
         .input-with-toggle input {
@@ -289,18 +246,17 @@
         
         .toggle-visibility {
             position: absolute;
-            right: 12px;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
             background: none;
             border: none;
             cursor: pointer;
             color: #8b8b8b;
-            font-size: 16px;
-            padding: 6px;
-            border-radius: 8px;
+            font-size: 18px;
+            padding: 6px 10px;
+            border-radius: 6px;
             transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
         
         .toggle-visibility:hover {
@@ -309,15 +265,217 @@
         }
         
         .btn-save {
-            background: #778873;
+            background: linear-gradient(135deg, #667761 0%, #8da884 100%);
             color: white;
-            padding: 14px;
-            margin-top: 8px;
-            font-weight: 500;
+            padding: 16px;
+            margin-top: 4px;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(119, 136, 115, 0.3);
         }
         
-        .btn-save:hover {
-            background: #5f6e5c;
+        .btn-save:hover:not(:disabled) {
+            box-shadow: 0 4px 16px rgba(119, 136, 115, 0.4);
+        }
+        
+        .connection-alert {
+            padding: 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            display: none;
+            animation: slideIn 0.3s ease;
+            line-height: 1.6;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .connection-alert.success {
+            background: #d4edda;
+            border: 2px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .connection-alert.error {
+            background: #f8d7da;
+            border: 2px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .connection-alert.testing {
+            background: #d1ecf1;
+            border: 2px solid #bee5eb;
+            color: #0c5460;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(0,0,0,0.1);
+            border-radius: 50%;
+            border-top-color: #0c5460;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .divider {
+            height: 1px;
+            background: linear-gradient(to right, transparent, #e8e8e8, transparent);
+            margin: 28px 0;
+        }
+        
+        .warning-box {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);
+            border: 2px solid #ffc107;
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 28px;
+            text-align: center;
+        }
+        
+        .warning-box h3 {
+            color: #856404;
+            margin-bottom: 6px;
+            font-size: 1em;
+            font-weight: 700;
+        }
+        
+        .warning-box p {
+            color: #664d03;
+            font-weight: 500;
+            font-size: 0.9em;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            transition: all 0.2s ease;
+            border: 1px solid #f0f0f0;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .stat-label {
+            font-size: 11px;
+            color: #8b8b8b;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+        }
+        
+        .stat-value {
+            font-size: 26px;
+            font-weight: 700;
+            color: #1a1a1a;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 28px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            border: 1px solid #f0f0f0;
+        }
+        
+        .card h2 {
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            color: #1a1a1a;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .card-header h2 {
+            margin-bottom: 0;
+        }
+        
+        .btn-reset {
+            background: #95a5a6;
+            color: white;
+            padding: 10px 20px;
+            font-size: 13px;
+            box-shadow: 0 2px 8px rgba(149, 165, 166, 0.3);
+        }
+        
+        .btn-reset:hover:not(:disabled) {
+            background: #7f8c8d;
+            box-shadow: 0 4px 16px rgba(149, 165, 166, 0.4);
+        }
+        
+        .logs-container {
+            background: #f8f9fb;
+            border: 2px solid #e8e8e8;
+            border-radius: 12px;
+            padding: 18px;
+            height: 500px;
+            overflow-y: auto;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 12.5px;
+            line-height: 1.8;
+        }
+        
+        .logs-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .logs-container::-webkit-scrollbar-track {
+            background: #f0f0f0;
+            border-radius: 10px;
+        }
+        
+        .logs-container::-webkit-scrollbar-thumb {
+            background: #c0c0c0;
+            border-radius: 10px;
+        }
+        
+        .logs-container::-webkit-scrollbar-thumb:hover {
+            background: #a0a0a0;
+        }
+        
+        .log-entry {
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+            color: #4a4a4a;
+        }
+        
+        .log-entry:last-child {
+            border-bottom: none;
         }
         
         .status-indicator {
@@ -339,125 +497,347 @@
         .danger-text { color: #e74c3c; }
         .info-text { color: #3498db; }
         
-        @media (max-width: 968px) {
-            .main-content {
-                grid-template-columns: 1fr;
+        .helper-text {
+            background: #f8f9fb;
+            border-left: 3px solid #8da884;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #5a5a5a;
+            line-height: 1.6;
+            margin-top: 4px;
+        }
+        
+        .helper-text strong {
+            color: #2c3e50;
+            display: block;
+            margin-bottom: 6px;
+        }
+        
+        @media (max-width: 1200px) {
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            }
+        }
+        
+        @media (max-width: 1024px) {
+            .layout {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid #e8e8e8;
+                padding: 24px 20px;
+            }
+            
+            .top-bar {
+                padding: 16px 20px;
+            }
+            
+            .main-area {
+                padding: 20px;
             }
             
             .stats-grid {
-                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 12px;
             }
             
-            .header h1 {
-                font-size: 2em;
+            .stat-card {
+                padding: 20px;
             }
             
-            body {
+            .card {
+                padding: 24px 20px;
+            }
+            
+            .logs-container {
+                height: 400px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .top-bar {
+                flex-direction: column;
+                gap: 16px;
+                text-align: center;
+            }
+            
+            .top-bar-left h1 {
+                font-size: 1.3em;
+                justify-content: center;
+            }
+            
+            .top-bar-left p {
+                font-size: 0.8em;
+            }
+            
+            .top-bar-right {
+                width: 100%;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+            
+            .sidebar {
+                padding: 20px 16px;
+            }
+            
+            .main-area {
                 padding: 16px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+            
+            .stat-card {
+                padding: 16px;
+            }
+            
+            .stat-value {
+                font-size: 22px;
+            }
+            
+            .stat-label {
+                font-size: 10px;
+            }
+            
+            .card {
+                padding: 20px 16px;
+            }
+            
+            .card-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+            
+            .card-header h2 {
+                font-size: 1.1em;
+            }
+            
+            .btn-reset {
+                width: 100%;
+            }
+            
+            .logs-container {
+                height: 350px;
+                padding: 14px;
+                font-size: 11.5px;
+            }
+            
+            .config-form {
+                gap: 20px;
+            }
+            
+            .form-group input {
+                padding: 12px 14px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .top-bar {
+                padding: 12px 16px;
+            }
+            
+            .top-bar-left h1 {
+                font-size: 1.1em;
+            }
+            
+            .btn {
+                padding: 10px 18px;
+                font-size: 13px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar {
+                padding: 16px 12px;
+            }
+            
+            .warning-box {
+                padding: 14px;
+            }
+            
+            .warning-box h3 {
+                font-size: 0.9em;
+            }
+            
+            .warning-box p {
+                font-size: 0.85em;
+            }
+            
+            .section-title {
+                font-size: 0.7em;
+            }
+            
+            .form-group label {
+                font-size: 12px;
+            }
+            
+            .form-group input {
+                font-size: 13px;
+            }
+            
+            .btn-save {
+                padding: 14px;
+                font-size: 13px;
+            }
+            
+            .logs-container {
+                height: 300px;
+            }
+        }
+        
+        @media (max-width: 360px) {
+            .stat-value {
+                font-size: 18px;
+            }
+            
+            #lastBet {
+                font-size: 14px !important;
             }
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <div class="header">
+    <div class="top-bar">
+        <div class="top-bar-left">
             <h1>🏇 Betfair Place Betting Bot</h1>
             <p>Live Trading Dashboard</p>
         </div>
-        
-        <div class="warning-banner">
-            <h3>⚠️ LIVE TRADING MODE</h3>
-            <p>This bot places REAL bets with REAL money!</p>
-        </div>
-        
-        <div class="controls">
+        <div class="top-bar-right">
             <button class="btn btn-start" onclick="startBot()">▶️ Start Bot</button>
             <button class="btn btn-stop" onclick="stopBot()">⏹️ Stop Bot</button>
         </div>
-        
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-label">Status</div>
-                <div class="stat-value" id="botStatus">🔴 Stopped</div>
+    </div>
+    
+    <div class="layout">
+        <!-- Sidebar Configuration -->
+        <div class="sidebar">
+            <div class="section-title">⚙️ Configuration</div>
+            
+            <div class="warning-box">
+                <h3>⚠️ LIVE TRADING</h3>
+                <p>Real bets with real money!</p>
             </div>
-            <div class="stat-card">
-                <div class="stat-label">Connection</div>
-                <div class="stat-value" id="connectionStatus">⭕ Not Connected</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Balance</div>
-                <div class="stat-value" id="balance">$0.00</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Total Bets</div>
-                <div class="stat-value" id="totalBets">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Successful</div>
-                <div class="stat-value" id="successfulBets">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Failed</div>
-                <div class="stat-value" id="failedBets">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Total Stake</div>
-                <div class="stat-value" id="totalStake">$0.00</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Last Bet</div>
-                <div class="stat-value" id="lastBet">Never</div>
+            
+            <div class="config-form">
+                <div class="form-group">
+                    <label>🔐 Session Token</label>
+                    <div class="input-with-toggle">
+                        <input 
+                            type="password" 
+                            id="sessionToken" 
+                            placeholder="Enter session token"
+                            autocomplete="off"
+                            spellcheck="false">
+                        <button type="button" class="toggle-visibility" onclick="togglePasswordVisibility('sessionToken')">
+                            👁
+                        </button>
+                    </div>
+                    <small>Your Betfair API session token</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>🔑 App Key</label>
+                    <div class="input-with-toggle">
+                        <input 
+                            type="password" 
+                            id="appKey" 
+                            placeholder="Enter app key"
+                            autocomplete="off"
+                            spellcheck="false">
+                        <button type="button" class="toggle-visibility" onclick="togglePasswordVisibility('appKey')">
+                            👁
+                        </button>
+                    </div>
+                    <small>Your Betfair application key</small>
+                </div>
+                
+                <div class="divider"></div>
+                
+                <div class="form-group">
+                    <label>📊 Min Odds</label>
+                    <input type="number" id="minOdds" step="0.1" value="2.0" placeholder="2.0">
+                    <small>Minimum odds to consider</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>📈 Max Odds</label>
+                    <input type="number" id="maxOdds" step="0.1" value="10.0" placeholder="10.0">
+                    <small>Maximum odds to consider</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>💰 Stake Amount</label>
+                    <input type="number" id="stake" step="0.5" value="2.0" placeholder="2.0">
+                    <small>Amount to stake per bet ($)</small>
+                </div>
+                
+                <button class="btn btn-save" id="saveBtn" onclick="saveConfig()">
+                    💾 Save Configuration
+                </button>
+                
+                <div id="connectionAlert" class="connection-alert"></div>
+                
+                <div class="helper-text">
+                    <strong>💡 Quick Guide:</strong>
+                    Enter your Betfair credentials and click save. The bot will verify your account access when you start it.
+                </div>
             </div>
         </div>
         
-        <div class="main-content">
-            <div class="card">
-                <h2>📝 Live Logs</h2>
-                <div class="logs-container" id="logs">
-                    <div class="log-entry">Waiting for bot to start...</div>
+        <!-- Main Content Area -->
+        <div class="main-area">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Status</div>
+                    <div class="stat-value" id="botStatus">🔴 Stopped</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Connection</div>
+                    <div class="stat-value" id="connectionStatus">⭕ Not Connected</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Balance</div>
+                    <div class="stat-value" id="balance">$0.00</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Bets</div>
+                    <div class="stat-value" id="totalBets">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Successful</div>
+                    <div class="stat-value success-text" id="successfulBets">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Failed</div>
+                    <div class="stat-value danger-text" id="failedBets">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Stake</div>
+                    <div class="stat-value" id="totalStake">$0.00</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Last Bet</div>
+                    <div class="stat-value" id="lastBet" style="font-size: 18px;">Never</div>
                 </div>
             </div>
             
             <div class="card">
-                <h2>⚙️ Configuration</h2>
-                <div class="config-form">
-                    <div class="form-group">
-                        <label>Session Token</label>
-                        <div class="input-with-toggle">
-                            <input type="password" id="sessionToken" placeholder="Enter Betfair session token">
-                            <button type="button" class="toggle-visibility" onclick="togglePasswordVisibility('sessionToken')">
-                                👁️
-                            </button>
-                        </div>
-                        <small>Your Betfair API session token (keep secure)</small>
-                    </div>
-                    <div class="form-group">
-                        <label>App Key</label>
-                        <div class="input-with-toggle">
-                            <input type="password" id="appKey" placeholder="Enter Betfair app key">
-                            <button type="button" class="toggle-visibility" onclick="togglePasswordVisibility('appKey')">
-                                👁️
-                            </button>
-                        </div>
-                        <small>Your Betfair application key</small>
-                    </div>
-                    <div class="form-group">
-                        <label>Min Odds</label>
-                        <input type="number" id="minOdds" step="0.1" value="2.0" placeholder="2.0">
-                        <small>Minimum odds to consider for betting</small>
-                    </div>
-                    <div class="form-group">
-                        <label>Max Odds</label>
-                        <input type="number" id="maxOdds" step="0.1" value="10.0" placeholder="10.0">
-                        <small>Maximum odds to consider for betting</small>
-                    </div>
-                    <div class="form-group">
-                        <label>Stake ($)</label>
-                        <input type="number" id="stake" step="0.5" value="2.0" placeholder="2.0">
-                        <small>Amount to stake per bet</small>
-                    </div>
-                    <button class="btn btn-save" onclick="saveConfig()">💾 Save Configuration</button>
+                <div class="card-header">
+                    <h2>📝 Live Activity Logs</h2>
+                    <button class="btn btn-reset" onclick="resetLogs()">🗑️ Clear Logs</button>
+                </div>
+                <div class="logs-container" id="logs">
+                    <div class="log-entry">Waiting for bot to start...</div>
                 </div>
             </div>
         </div>
@@ -472,20 +852,61 @@
             fetch('/api/start', { method: 'POST' })
                 .then(response => response.json())
                 .then(data => {
-                    alert(data.message);
+                    if (data.success) {
+                        showConnectionAlert('success', '✅ ' + data.message);
+                    } else {
+                        showConnectionAlert('error', '❌ ' + data.message);
+                    }
                     updateStatus();
                 })
-                .catch(error => alert('Error starting bot: ' + error));
+                .catch(error => {
+                    showConnectionAlert('error', '❌ Error starting bot: ' + error);
+                });
         }
         
         function stopBot() {
             fetch('/api/stop', { method: 'POST' })
                 .then(response => response.json())
                 .then(data => {
-                    alert(data.message);
+                    if (data.success) {
+                        showConnectionAlert('success', '✅ ' + data.message);
+                    } else {
+                        showConnectionAlert('error', '❌ ' + data.message);
+                    }
                     updateStatus();
                 })
-                .catch(error => alert('Error stopping bot: ' + error));
+                .catch(error => {
+                    showConnectionAlert('error', '❌ Error stopping bot: ' + error);
+                });
+        }
+        
+        function resetLogs() {
+            if (!confirm('Clear all logs?\n\nThis will remove all activity log entries from the display.')) {
+                return;
+            }
+            
+            // Clear logs locally
+            const logsEl = document.getElementById('logs');
+            logsEl.innerHTML = '<div class="log-entry">Logs cleared. Waiting for new activity...</div>';
+            
+            // Try to clear on backend (optional - won't fail if endpoint doesn't exist)
+            fetch('/api/logs/clear', { method: 'POST' })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    // Silently ignore if endpoint doesn't exist
+                    return null;
+                })
+                .then(data => {
+                    if (data && !data.success) {
+                        console.log('Backend log clear failed:', data.message);
+                    }
+                })
+                .catch(error => {
+                    // Silently ignore errors - logs are already cleared locally
+                    console.log('Log clear request ignored (endpoint may not exist)');
+                });
         }
         
         function togglePasswordVisibility(inputId) {
@@ -498,29 +919,53 @@
                 button.title = 'Hide';
             } else {
                 input.type = 'password';
-                button.textContent = '👁️';
+                button.textContent = '👁';
                 button.title = 'Show';
+            }
+        }
+        
+        function showConnectionAlert(type, message) {
+            const alert = document.getElementById('connectionAlert');
+            alert.className = `connection-alert ${type}`;
+            alert.innerHTML = message;
+            alert.style.display = 'block';
+            
+            if (type !== 'error') {
+                setTimeout(() => {
+                    alert.style.display = 'none';
+                }, 5000);
             }
         }
         
         function saveConfig() {
             const config = {
-                session_token: document.getElementById('sessionToken').value,
-                app_key: document.getElementById('appKey').value,
+                session_token: document.getElementById('sessionToken').value.trim(),
+                app_key: document.getElementById('appKey').value.trim(),
                 min_odds: parseFloat(document.getElementById('minOdds').value),
                 max_odds: parseFloat(document.getElementById('maxOdds').value),
                 stake: parseFloat(document.getElementById('stake').value)
             };
             
             if (!config.session_token) {
-                alert('⚠️ Please enter a session token!');
+                showConnectionAlert('error', '❌ Please enter a session token!');
                 return;
             }
             
             if (!config.app_key) {
-                alert('⚠️ Please enter an app key!');
+                showConnectionAlert('error', '❌ Please enter an app key!');
                 return;
             }
+            
+            if (isNaN(config.stake) || config.stake <= 0) {
+                showConnectionAlert('error', '❌ Please enter a valid stake amount!');
+                return;
+            }
+            
+            const saveBtn = document.getElementById('saveBtn');
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '⏳ Saving...';
+            
+            showConnectionAlert('testing', '<div class="spinner"></div>Saving configuration...');
             
             fetch('/api/config', {
                 method: 'POST',
@@ -530,19 +975,25 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        alert('✅ ' + data.message);
+                        showConnectionAlert('success', '✅ ' + data.message);
                     } else {
-                        alert('❌ ' + data.message);
+                        showConnectionAlert('error', '❌ ' + data.message);
                     }
                 })
-                .catch(error => alert('Error saving config: ' + error));
+                .catch(error => {
+                    showConnectionAlert('error', '❌ Error saving config: ' + error);
+                })
+                .finally(() => {
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = '💾 Save Configuration';
+                });
         }
         
         function updateStatus() {
             fetch('/api/status')
                 .then(response => response.json())
                 .then(data => {
-                    // Status
+                    // Bot Status
                     const statusEl = document.getElementById('botStatus');
                     if (data.status === 'running') {
                         statusEl.innerHTML = '<span class="status-indicator" style="background: #27ae60;"></span><span class="success-text">Running</span>';
@@ -550,7 +1001,7 @@
                         statusEl.innerHTML = '<span class="status-indicator" style="background: #e74c3c;"></span><span class="danger-text">Stopped</span>';
                     }
                     
-                    // Connection
+                    // Connection Status
                     const connEl = document.getElementById('connectionStatus');
                     const recentLogs = data.logs.join(' ');
                     if (!data.betfair_available) {
@@ -565,44 +1016,57 @@
                     
                     // Balance
                     document.getElementById('balance').textContent = 
-                        `${data.currency || '$'} ${data.balance.toFixed(2)}`;
+                        `${data.currency || '$'}${data.balance.toFixed(2)}`;
                     
                     // Stats
                     document.getElementById('totalBets').textContent = data.stats.total_bets || 0;
                     document.getElementById('successfulBets').textContent = data.stats.successful_bets || 0;
                     document.getElementById('failedBets').textContent = data.stats.failed_bets || 0;
                     document.getElementById('totalStake').textContent = 
-                        `${data.currency || '$'} ${(data.stats.total_stake || 0).toFixed(2)}`;
+                        `${data.currency || '$'}${(data.stats.total_stake || 0).toFixed(2)}`;
                     document.getElementById('lastBet').textContent = 
                         data.stats.last_bet_time || 'Never';
                     
-                    // Config - Load session token and app key too
-                    if (data.config && data.config.session_token) {
-                        document.getElementById('sessionToken').value = data.config.session_token;
-                    }
-                    if (data.config && data.config.app_key) {
-                        document.getElementById('appKey').value = data.config.app_key;
-                    }
-                    if (data.config && data.config.min_odds) {
-                        document.getElementById('minOdds').value = data.config.min_odds;
-                    }
-                    if (data.config && data.config.max_odds) {
-                        document.getElementById('maxOdds').value = data.config.max_odds;
-                    }
-                    if (data.config && data.config.stake) {
-                        document.getElementById('stake').value = data.config.stake;
+                    // Config - Load from backend
+                    if (data.config) {
+                        if (data.config.session_token && !document.getElementById('sessionToken').value) {
+                            document.getElementById('sessionToken').value = data.config.session_token;
+                        }
+                        if (data.config.app_key && !document.getElementById('appKey').value) {
+                            document.getElementById('appKey').value = data.config.app_key;
+                        }
+                        if (data.config.min_odds) {
+                            document.getElementById('minOdds').value = data.config.min_odds;
+                        }
+                        if (data.config.max_odds) {
+                            document.getElementById('maxOdds').value = data.config.max_odds;
+                        }
+                        if (data.config.stake) {
+                            document.getElementById('stake').value = data.config.stake;
+                        }
                     }
                     
                     // Logs
                     const logsEl = document.getElementById('logs');
                     if (data.logs && data.logs.length > 0) {
                         logsEl.innerHTML = data.logs.map(log => 
-                            `<div class="log-entry">${log}</div>`
+                            `<div class="log-entry">${escapeHtml(log)}</div>`
                         ).join('');
                         logsEl.scrollTop = logsEl.scrollHeight;
                     }
                 })
                 .catch(error => console.error('Error:', error));
+        }
+        
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
         }
         
         // Update every 3 seconds
